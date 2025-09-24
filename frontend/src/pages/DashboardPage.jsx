@@ -10,6 +10,7 @@ import {
   FiLoader,
   FiGlobe,
 } from "react-icons/fi";
+import { Folder } from "lucide-react";
 import "./Dashboard.css";
 
 const DashboardPage = () => {
@@ -75,8 +76,7 @@ const DashboardPage = () => {
           <button
             onClick={handleRunChecks}
             className="run-checks-btn"
-            disabled={isLoading}
-          >
+            disabled={isLoading}>
             {isLoading ? (
               <>
                 <FiLoader className="spin" /> Scanning...
@@ -94,13 +94,30 @@ const DashboardPage = () => {
               <FiGlobe /> Monitored Websites ({websites.length})
             </h3>
             <form onSubmit={handleAddWebsite} className="add-website-form">
-              <FiPlus style={{marginLeft:"5px",paddingTop:"10px"}}/>
+              <FiPlus style={{ paddingTop: "10px" }} />
+              
+
+              <div class="file-upload-container" >
               <input
                 type="text"
+                className="enterLink"
                 value={newWebsite}
                 onChange={(e) => setNewWebsite(e.target.value)}
                 placeholder="Add a new website"
               />
+                <input
+                  type="file"
+                  id="fileSelect"
+                  class="fileSelect"
+                  accept=".csv"
+                  aria-label="Upload CSV file"
+                />
+                <label for="fileSelect" class="file-input-label">
+                  <Folder style={{ paddingRight: "10px", height: "20px" }} />
+                  Upload .csv
+                </label>
+              </div>
+
             </form>
             <ul>
               {websites.map((site) => (
@@ -108,9 +125,8 @@ const DashboardPage = () => {
                   <span>{site}</span>
                   <button
                     onClick={() => handleRemoveWebsite(site)}
-                    className="delete-btn"
-                  >
-                    <FiTrash color="black"/>
+                    className="delete-btn">
+                    <FiTrash color="black" />
                   </button>
                 </li>
               ))}
@@ -135,7 +151,10 @@ const DashboardPage = () => {
                   <p>{results.stats.total}</p>
                 </div>
                 <div className="stat-item">
-                  <FiAlertTriangle className="stat-icon danger" color="#d7191c"/>
+                  <FiAlertTriangle
+                    className="stat-icon danger"
+                    color="#d7191c"
+                  />
                   <h4>Problems Found</h4>
                   <p>{results.stats.problems}</p>
                 </div>
@@ -156,8 +175,7 @@ const DashboardPage = () => {
                 {results.issues.map((issue, index) => (
                   <li
                     key={index}
-                    className={`issue-item severity-${issue.severity.toLowerCase()}`}
-                  >
+                    className={`issue-item severity-${issue.severity.toLowerCase()}`}>
                     <div className="issue-info">
                       <span className="issue-url">{issue.url}</span>
                       <span className="issue-error">{issue.error}</span>
