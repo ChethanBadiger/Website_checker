@@ -42,7 +42,7 @@ async function checkSite(url, outputDir) {
         const content = await page.content();
 
         if(/(SQL syntax|mysqli|PDOException|ORA-|error establishing a database connection|database error)/i.test(content)) {
-            res.errors.push('database error have been dectected');
+            res.errors.push('database error have been detected');
         }
 
         if(/(casino|betting|poker|gambling|free spins|porn|xxx|sex)/i.test(content)) {
