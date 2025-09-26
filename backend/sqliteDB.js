@@ -1,10 +1,16 @@
-import Database from "better-sqlite3";
-const db = new Database("urls.db");
+const Database = require("better-sqlite3");
 
-const query = `
-CREATE TABLE IF NOT EXISTS urls (
+// Open or create the database file
+const db = new Database("./urls.db");
+
+// Create table if it doesn’t exist
+db.prepare(
+  `
+  CREATE TABLE IF NOT EXISTS urls (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    url TEXT NOT NULL
-    )`;
+    url TEXT
+  )
+`
+).run();
 
-db.exec(query);
+module.exports = db;

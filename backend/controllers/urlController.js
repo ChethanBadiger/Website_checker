@@ -1,65 +1,40 @@
-//@desc get all urls
-//@route GET /api/urls
-//@access public
+const db = require("../sqliteDB");
 
-const getUrls = (req,res) => {
-    res.status(200).json({"message":"Hello from backend"});
-};
-//@desc create a url 
-//@route POST /api/urls
-//@access public
+// Save (replace) all URLs
+exports.saveUrls = (req, res) => {
+  try {
+    const { urls } = req.body;
 
-const createUrls = (req,res) => {
-    console.log("The requested body is: ",req.body);
-    const {name} = req.body;
-    if(!name){
-        res.status(400);
-        throw new Error("all fields are mandatory");
+    if (!urls || !Array.isArray(urls) || urls.length === 0) {
+      return res
+        .status(400)
+        .json({ error: "Invalid input. 'urls' must be a non-empty array." });
     }
-    res.status(201).json({"message":"Hello from backend"});
+
+    // Clear existing URLs
+    db.prepare("DELETE FROM urls").run();
+
+    // Insert new URLs
+    const stmt = db.prepare("INSERT INTO urls (url) VALUES (?)");
+    const insertMany = db.transaction((urls) => {
+      urls.forEach((url) => stmt.run(url));
+    });
+    insertMany(urls);
+
+    res.json({ message: "URLs saved successfully.", count: urls.length });
+  } catch (err) {
+    console.error("Error saving URLs:", err);
+    res.status(500).json({ error: "Failed to save URLs." });
+  }
 };
-//@desc delete a url by id 
-//@route DELETE /api/urls/:id
-//@access public
 
-const deleteUrl = (req,res) => {
-    res.status(200).json({"message":`remove url ${req.params.id}`});
-}
-//@desc upload csv
-//@route POST /api/urls/bulk
-//@access public
-
-const uploadCSV = (req,res) => {
-    res.status(201).json({"message":"Hello from backend"});
-}
-//@desc export the list 
-//@route GET /api/urls/export
-//@access public
-
-const exportURL = (req,res) => {
-    res.status(200).json({"message":"Hello from backend"});
-}
-//@desc a manual trigger to run the check 
-//@route POST /api/urls/run
-//@access public
-
-const runCheck = (req,res) => {
-    res.status(201).json({"message":"Hello from backend"});
-}
-//@desc get log + screenshot URLs for that date.
-//@route GET /api/urls/logs/:date
-//@access public
-
-const logDate = (req,res) => {
-    res.status(200).json({"message":"Hello from backend"});
-}
-
-module.exports = {
-    getUrls,
-    createUrls,
-    deleteUrl,
-    uploadCSV,
-    exportURL,
-    runCheck,
-    logDate
-}
+// Get all URLs
+exports.getUrls = (req, res) => {
+  try {
+    const rows = db.prepare("SELECT * FROM urls").all();
+    res.json(rows);
+  } catch (err) {
+    console.error("Error retrieving URLs:", err);
+    res.status(500).json({ error: "Failed to retrieve URLs." });
+  }
+};

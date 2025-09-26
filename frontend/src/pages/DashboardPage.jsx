@@ -1,5 +1,6 @@
 // src/pages/DashboardPage.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import Papa from "papaparse";
 import {
   FiPlus,
   FiTrash,
@@ -12,6 +13,7 @@ import {
 } from "react-icons/fi";
 import { Folder } from "lucide-react";
 import "./Dashboard.css";
+import { use } from "react";
 
 const DashboardPage = () => {
   const [websites, setWebsites] = useState(["https://google.com"]);
@@ -19,13 +21,58 @@ const DashboardPage = () => {
   const [results, setResults] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleAddWebsite = (e) => {
+  const saveUrlsToDB = async (urls) => {
+    try {
+      await fetch("http://localhost:5001/api/urls/save", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ urls }),
+      });
+      const data = await res.json();
+      console.log("Saved: ",data);
+
+      fetchUrlsFromDB();
+    } catch (error) {
+      console.error("Error saving URLs:", error);
+      
+    }
+  };
+
+  const fetchUrlsFromDB = async () => {
+    try {
+      const res = await fetch("http://localhost:5001/api/urls/all");
+      const data = await res.json();
+      setWebsites(data.map((row) => row.url));
+    } catch (error) {
+      error("Error fetching URLs:", error);
+    }
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      Papa.parse(file, {
+        header: false,
+        complete: async (results) => {
+          const urls = results.data.flat().filter((url) => url);
+          await saveUrlsToDB(urls);
+        },
+      });
+    }
+  };
+  const handleAddWebsite = async (e) => {
     e.preventDefault();
-    if (newWebsite && !websites.includes(newWebsite)) {
-      setWebsites([...websites, newWebsite]);
+    if (newWebsite) {
+      await saveUrlsToDB([newWebsite]);
       setNewWebsite("");
     }
   };
+
+  useEffect(() => {
+    fetchUrlsFromDB();
+  }, []);
 
   const handleRemoveWebsite = (siteToRemove) => {
     setWebsites(websites.filter((site) => site !== siteToRemove));
