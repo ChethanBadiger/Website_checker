@@ -1,40 +1,41 @@
-const db = require("../sqliteDB");
+const Url = require('../models/url');
 
-// Save (replace) all URLs
-exports.saveUrls = (req, res) => {
+exports.getUrls = async (req, res) => {
   try {
-    const { urls } = req.body;
-
-    if (!urls || !Array.isArray(urls) || urls.length === 0) {
-      return res
-        .status(400)
-        .json({ error: "Invalid input. 'urls' must be a non-empty array." });
-    }
-
-    // Clear existing URLs
-    db.prepare("DELETE FROM urls").run();
-
-    // Insert new URLs
-    const stmt = db.prepare("INSERT INTO urls (url) VALUES (?)");
-    const insertMany = db.transaction((urls) => {
-      urls.forEach((url) => stmt.run(url));
-    });
-    insertMany(urls);
-
-    res.json({ message: "URLs saved successfully.", count: urls.length });
+    const urls = await Url.find().sort({ createdAt: -1 });
+    res.json(urls);
   } catch (err) {
-    console.error("Error saving URLs:", err);
-    res.status(500).json({ error: "Failed to save URLs." });
+    res.status(500).json({ msg: 'Server Error' });
   }
 };
 
-// Get all URLs
-exports.getUrls = (req, res) => {
+
+exports.saveUrls = async (req, res) => {
   try {
-    const rows = db.prepare("SELECT * FROM urls").all();
-    res.json(rows);
+    const { urls } = req.body; 
+    if (!urls || !Array.isArray(urls)) {
+        return res.status(400).json({ msg: 'Input must be an array of URLs.' });
+    }
+
+    const urlObjects = urls.map(url => ({ url }));
+ 
+    await Url.insertMany(urlObjects, { ordered: false }); 
+
+    res.status(201).json({ msg: 'URLs processed successfully.' });
   } catch (err) {
-    console.error("Error retrieving URLs:", err);
-    res.status(500).json({ error: "Failed to retrieve URLs." });
+ 
+    if (err.code === 11000) {
+        return res.status(201).json({ msg: 'URLs processed, duplicates were ignored.' });
+    }
+    res.status(500).json({ msg: 'Server Error' });
+  }
+};
+
+exports.deleteUrl = async (req, res) => {
+  try {
+    await Url.findByIdAndDelete(req.params.id);
+    res.json({ msg: 'URL deleted' });
+  } catch (err) {
+    res.status(500).json({ msg: 'Server Error' });
   }
 };
