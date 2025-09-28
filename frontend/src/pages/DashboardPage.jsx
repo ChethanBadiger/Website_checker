@@ -1,6 +1,5 @@
 // src/pages/DashboardPage.jsx
-import React, { useState, useEffect } from "react";
-import Papa from "papaparse";
+import React, { useState } from "react";
 import {
   FiPlus,
   FiTrash,
@@ -11,73 +10,28 @@ import {
   FiLoader,
   FiGlobe,
 } from "react-icons/fi";
-import { Folder } from "lucide-react";
+import { CirclePlay, Folder } from "lucide-react";
 import "./Dashboard.css";
-import { use } from "react";
 
 const DashboardPage = () => {
   const [websites, setWebsites] = useState(["https://google.com"]);
   const [newWebsite, setNewWebsite] = useState("");
   const [results, setResults] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoad, setIsLoad] = useState(false);
 
-  const saveUrlsToDB = async (urls) => {
-    try {
-      await fetch("http://localhost:5001/api/urls/save", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ urls }),
-      });
-      const data = await res.json();
-      console.log("Saved: ",data);
-
-      fetchUrlsFromDB();
-    } catch (error) {
-      console.error("Error saving URLs:", error);
-      
-    }
-  };
-
-  const fetchUrlsFromDB = async () => {
-    try {
-      const res = await fetch("http://localhost:5001/api/urls/all");
-      const data = await res.json();
-      setWebsites(data.map((row) => row.url));
-    } catch (error) {
-      error("Error fetching URLs:", error);
-    }
-  };
-
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      Papa.parse(file, {
-        header: false,
-        complete: async (results) => {
-          const urls = results.data.flat().filter((url) => url);
-          await saveUrlsToDB(urls);
-        },
-      });
-    }
-  };
-  const handleAddWebsite = async (e) => {
+  const handleAddWebsite = (e) => {
     e.preventDefault();
-    if (newWebsite) {
-      await saveUrlsToDB([newWebsite]);
+    if (newWebsite && !websites.includes(newWebsite)) {
+      setWebsites([...websites, newWebsite]);
       setNewWebsite("");
     }
   };
 
-  useEffect(() => {
-    fetchUrlsFromDB();
-  }, []);
-
   const handleRemoveWebsite = (siteToRemove) => {
     setWebsites(websites.filter((site) => site !== siteToRemove));
   };
-
+  // for all websites check
   const handleRunChecks = async () => {
     setIsLoading(true);
 
@@ -96,6 +50,27 @@ const DashboardPage = () => {
       };
       setResults(dummyResults);
       setIsLoading(false);
+    }, 2000);
+  };
+  //for single website check
+  const handleRunCheck = async () => {
+    setIsLoad(true);
+
+    setTimeout(() => {
+      const dummyResults = {
+        stats: { total: websites.length, problems: 2, health: "98%" },
+        issues: [
+          { url: "https://google.com", error: "OK", severity: "None" },
+          { url: "http://baddomain.com", error: "SSL_ERROR", severity: "High" },
+          {
+            url: "http://redirected.com",
+            error: "REDIRECT",
+            severity: "Medium",
+          },
+        ],
+      };
+      setResults(dummyResults);
+      setIsLoad(false);
     }, 2000);
   };
 
@@ -142,16 +117,15 @@ const DashboardPage = () => {
             </h3>
             <form onSubmit={handleAddWebsite} className="add-website-form">
               <FiPlus style={{ paddingTop: "10px" }} />
-              
 
-              <div class="file-upload-container" >
-              <input
-                type="text"
-                className="enterLink"
-                value={newWebsite}
-                onChange={(e) => setNewWebsite(e.target.value)}
-                placeholder="Add a new website"
-              />
+              <div class="file-upload-container">
+                <input
+                  type="text"
+                  className="enterLink"
+                  value={newWebsite}
+                  onChange={(e) => setNewWebsite(e.target.value)}
+                  placeholder="Add a new website"
+                />
                 <input
                   type="file"
                   id="fileSelect"
@@ -164,17 +138,29 @@ const DashboardPage = () => {
                   Upload .csv
                 </label>
               </div>
-
             </form>
             <ul>
               {websites.map((site) => (
                 <li key={site} className="website-item">
                   <span>{site}</span>
-                  <button
-                    onClick={() => handleRemoveWebsite(site)}
-                    className="delete-btn">
-                    <FiTrash color="black" />
-                  </button>
+                  <div >
+                    <button
+                      onClick={() => handleRemoveWebsite(site)}
+                      className="delete-btn" style={{height:"3rem"}}>
+                      <FiTrash style={{height:"1.5rem",fontSize:"1rem"}}/>
+                    </button>
+
+                    <button
+                      onClick={handleRunCheck}
+                      className="run-check-btn"
+                      disabled={isLoad} style={{height:"2rem", backgroundColor:"transparent",border:"transparent"}} >
+                      {isLoad ? (
+                        <FiLoader className="spin"  style={{display:"flex",height:"24px",width:"24px", gap:".5rem"}}/>
+                      ) : (
+                        <CirclePlay color="white" />
+                      )}
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>

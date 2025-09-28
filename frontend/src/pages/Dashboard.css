@@ -167,6 +167,7 @@
   align-items: center;
   background: var(--bg-tertiary);
   padding: 8px 12px;
+  height: 45px;
   border-radius: var(--radius);
   margin-bottom: 8px;
   transition: background var(--transition);
