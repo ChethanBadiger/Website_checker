@@ -19,6 +19,60 @@ const DashboardPage = () => {
   const [results, setResults] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoad, setIsLoad] = useState(false);
+  //added by chetan this is for backend implementation
+  const [url, setUrl] = useState("");
+  const [file, setFile] = useState(null);
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile && selectedFile.type === "text/csv") {
+      setFile(selectedFile);
+      setUrl("");
+    } else {
+      alert("Please upload a valid CSV file.");
+      e.target.value = null;
+    }
+  };
+
+  const handleUrlChange = (e) => {
+    setUrl(e.target.value);
+    setFile(null);
+  };
+
+  const handleSubmit = async () => {
+    try {
+      let response;
+
+      if (url) {
+        response = await fetch("http://localhost:5000/upload-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+        });
+      } else if (file) {
+        const formData = new FormData();
+        formData.append("csv", file);
+
+        response = await fetch("http://localhost:5000/upload-csv", {
+          method: "POST",
+          body: formData,
+        });
+      } else {
+        alert("Please provide a Url or upload a CSV file.");
+        return;
+      }
+
+      const data = await response.json();
+      console.log("Server response:", data);
+      alert("Data successfully sent to the server.");
+    } catch (error) {
+      console.error("Error submitting data:", error);
+      // psa to chetan remove this later don't forget
+      alert("Unfortunately, you have no bitches. basically upload failed");
+    }
+  };
+
+  //end of chetan code
 
   const handleAddWebsite = (e) => {
     e.preventDefault();
@@ -98,7 +152,8 @@ const DashboardPage = () => {
           <button
             onClick={handleRunChecks}
             className="run-checks-btn"
-            disabled={isLoading}>
+            disabled={isLoading}
+          >
             {isLoading ? (
               <>
                 <FiLoader className="spin" /> Scanning...
@@ -123,9 +178,14 @@ const DashboardPage = () => {
                   type="text"
                   className="enterLink"
                   value={newWebsite}
-                  onChange={(e) => setNewWebsite(e.target.value)}
+                  //chetan change here
+                  onChange={handleUrlChange}
                   placeholder="Add a new website"
                 />
+                {/* extra input adjust it  */}
+                <input type="file" accept=".csv" onChange={handleFileChange} />
+                <button onClick={handleSubmit}>Submit</button>
+                {/* best of luck adjusting this in css */}
                 <input
                   type="file"
                   id="fileSelect"
@@ -143,19 +203,35 @@ const DashboardPage = () => {
               {websites.map((site) => (
                 <li key={site} className="website-item">
                   <span>{site}</span>
-                  <div >
+                  <div>
                     <button
                       onClick={() => handleRemoveWebsite(site)}
-                      className="delete-btn" style={{height:"3rem"}}>
-                      <FiTrash style={{height:"1.5rem",fontSize:"1rem"}}/>
+                      className="delete-btn"
+                      style={{ height: "3rem" }}
+                    >
+                      <FiTrash style={{ height: "1.5rem", fontSize: "1rem" }} />
                     </button>
 
                     <button
                       onClick={handleRunCheck}
                       className="run-check-btn"
-                      disabled={isLoad} style={{height:"2rem", backgroundColor:"transparent",border:"transparent"}} >
+                      disabled={isLoad}
+                      style={{
+                        height: "2rem",
+                        backgroundColor: "transparent",
+                        border: "transparent",
+                      }}
+                    >
                       {isLoad ? (
-                        <FiLoader className="spin"  style={{display:"flex",height:"24px",width:"24px", gap:".5rem"}}/>
+                        <FiLoader
+                          className="spin"
+                          style={{
+                            display: "flex",
+                            height: "24px",
+                            width: "24px",
+                            gap: ".5rem",
+                          }}
+                        />
                       ) : (
                         <CirclePlay color="white" />
                       )}
@@ -208,7 +284,8 @@ const DashboardPage = () => {
                 {results.issues.map((issue, index) => (
                   <li
                     key={index}
-                    className={`issue-item severity-${issue.severity.toLowerCase()}`}>
+                    className={`issue-item severity-${issue.severity.toLowerCase()}`}
+                  >
                     <div className="issue-info">
                       <span className="issue-url">{issue.url}</span>
                       <span className="issue-error">{issue.error}</span>
