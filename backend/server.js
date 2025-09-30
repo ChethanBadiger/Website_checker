@@ -1,30 +1,67 @@
 const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-require("dotenv").config();
+const multer = require("multer");
+const fs = require("fs");
+const csv = require("csv-parser");
+const { insertUrl, resetTable } = require("./db");
 
 const app = express();
-const port = process.env.PORT || 5001;
-
-
-app.use(cors());
+const upload = multer({ dest: "uploads/" });
 
 app.use(express.json());
 
+// ----------- Insert single URL -----------
+app.post("/upload-url", (req, res) => {
+  const { url } = req.body;
 
-const uri = process.env.ATLAS_URI;
-mongoose.connect(uri);
-const connection = mongoose.connection;
-connection.once('open', () => {
-  console.log(' MongoDB database connection established ');
+  if (!url || !url.startsWith("http")) {
+    return res.status(400).json({ error: "A valid URL is required" });
+  }
+
+  resetTable(); // clear all rows + reset id
+  insertUrl(url);
+
+  res.json({
+    message: "Single URL inserted successfully (database reset first)",
+    rowsInserted: 1,
+  });
 });
 
+// ----------- Insert from CSV file -----------
+app.post("/upload-csv", upload.single("csv"), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "CSV file is required" });
+  }
 
-app.use("/api/urls", require("./Routes/UrlRoutes"));
+  resetTable(); // clear all rows + reset id
 
-app.use("/api/check", require("./Routes/CheckRoutes"));
+  const filePath = req.file.path;
+  let rowCount = 0;
 
+  fs.createReadStream(filePath)
+    .pipe(csv({ headers: false }))
+    .on("data", (row) => {
+      for (const key in row) {
+        const value = row[key];
+        if (value && value.startsWith("http")) {
+          insertUrl(value);
+          rowCount++;
+        }
+      }
+    })
+    .on("end", () => {
+      fs.unlinkSync(filePath);
+      res.json({
+        message: "CSV processed successfully (database reset first)",
+        rowsInserted: rowCount,
+      });
+    })
+    .on("error", (err) => {
+      console.error("CSV parse error:", err);
+      res.status(500).json({ error: "Failed to parse CSV" });
+    });
+});
 
-app.listen(port, () => {
-  console.log(` Server is running on port: http://localhost:${port}`);
+// ----------- Start server -----------
+app.listen(5000, () => {
+  console.log("Server running on http://localhost:5000");
 });
