@@ -2,7 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const fs = require("fs");
 const csv = require("csv-parser");
-const { insertUrl, resetTable } = require("./db");
+const { insertUrl, resetTable } = require("./sqliteDB");
 
 const app = express();
 const upload = multer({ dest: "uploads/" });
