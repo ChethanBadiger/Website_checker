@@ -32,7 +32,7 @@ async function checkSite(url) {
 
     try {
         const response = await page.goto(url, {
-            timeout: 40000,
+            timeout: 100000,
             waitUntil: "networkidle2"
         });
 
