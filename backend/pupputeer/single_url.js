@@ -102,3 +102,15 @@ async function checkAllSites() {
     const allResults = await checkAllSites();
     console.log("All checks completed:", allResults.length);
 })();
+
+// run daily using cron or task scheduler 2am every day
+cron.schedule("0 2 * * *", async () => {
+    console.log("Starting daily check at", new Date().toISOString());
+    try {
+        const results = await checkAllSites(); 
+        console.log("Daily check finished:", results.length, "sites checked");
+        //set email here gauresh
+    } catch (err) {
+        console.error("Error during scheduled check:", err);
+    }
+});
