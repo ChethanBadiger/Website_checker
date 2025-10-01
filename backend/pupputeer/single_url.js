@@ -15,7 +15,7 @@ async function checkSite(url) {
     const res = {
         url,
         errors: [],
-        anomaly: false,
+        status: "Good",  
         finalUrl: null,
         screenshotPath: null,
         log: null
@@ -45,10 +45,12 @@ async function checkSite(url) {
 
         if (/too many redirects|redirected you too many times/i.test(content)) {
             res.errors.push("Site is being redirected (possible malware/attack)");
+            res.status = "too many redirects";
         }
 
         if (/(SQL syntax|mysqli|PDOException|ORA-|error establishing a database connection|database error)/i.test(content)) {
             res.errors.push("Database error detected");
+            res.status = "Bad";
         }
 
             const outputDir = path.resolve("./screenshots");
@@ -64,10 +66,13 @@ async function checkSite(url) {
         const msg = error.message || "";
         if (/SSL|CERT|certificate/i.test(msg)) {
             res.errors.push("ssl error");
+            res.status = "Bad";
         } else if (/Timeout|Navigation|ENOTFOUND|ERR_NAME_NOT_RESOLVED/i.test(msg)) {
             res.errors.push("site unreachable");
+            res.status = "Bad";
         } else {
             res.errors.push("other: " + msg.slice(0, 200));
+            res.status = "Bad";
         }
     } finally {
         await browser.close();
