@@ -1,25 +1,22 @@
 import puppeteer from "puppeteer";
 import Database from "better-sqlite3";
+import fs from "fs";
+import path from "path";
 
 const db = new Database("../data.db"); 
 
-// Fetch all URLs from the records table
-function getAllUrls() {
-  try {
-    return db.prepare("SELECT url FROM records").all().map(r => r.url);
-  } catch (err) {
-    console.error("Error reading database:", err.message);
-    return [];
-  }
+function safeFilename(url) {
+  return url.replace(/[:\/\\?%*|"<>]/g, "_");
 }
 
-// only checks a single site at a time (40s) 
+// only checks a single site at a time (1min) 
 async function checkSite(url) {
     const res = {
         url,
         errors: [],
         anomaly: false,
         finalUrl: null,
+        screenshotPath: null,
         log: null
     };
 
@@ -32,43 +29,36 @@ async function checkSite(url) {
 
     try {
         const response = await page.goto(url, {
-            timeout: 100000,
-            waitUntil: "networkidle2"
+            timeout: 30000,
+            waitUntil: "domcontentloaded"
         });
 
         res.finalUrl = page.url();
 
         // Count redirects
-        let redirectCount = 0;
-        if (response && response.request()) {
-            let req = response.request();
-            while (req.redirectChain().length > redirectCount) {
-                redirectCount = req.redirectChain().length;
-            }
-        }
+        const redirectCount = response.request().redirectChain().length;
         if (redirectCount > 3) res.errors.push("too many redirects");
+
 
         const content = await page.content();
 
-        // 1. Site doesn't open
-        if (/site can't be reached|this site can’t be reached|failed to fetch|timeout|could not connect/i.test(content)) {
-            res.errors.push("Site doesn't open");
-        }
-
-        // 2. SSL error
-        if (/SSL|ERR_SSL|certificate|ERR_CERT_COMMON_NAME_INVALID|ERR_CERT_AUTHORITY_INVALID/i.test(content)) {
-            res.errors.push("SSL error detected");
-        }
-
-        // 3. Site gets redirected
         if (/too many redirects|redirected you too many times/i.test(content)) {
             res.errors.push("Site is being redirected (possible malware/attack)");
         }
 
-        // 4. Database error
         if (/(SQL syntax|mysqli|PDOException|ORA-|error establishing a database connection|database error)/i.test(content)) {
             res.errors.push("Database error detected");
         }
+
+            const outputDir = path.resolve("./screenshots");
+            await fs.promises.mkdir(outputDir, { recursive: true });
+
+            const fname = safeFilename(url) + ".png";
+            const fullPath = path.join(outputDir, fname);
+
+            await page.screenshot({ path: fullPath, fullPage: true });
+            res.screenshotPath = fullPath;
+
     } catch (error) {
         const msg = error.message || "";
         if (/SSL|CERT|certificate/i.test(msg)) {
