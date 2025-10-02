@@ -1,19 +1,19 @@
 import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
-  host: "smtp.ethereal.email",
+  host: "smtp.gmail.com",
   port: 587,
   secure: false, 
   auth: {
-    user: "ed.breitenberg78@ethereal.email",
-    pass: "cKdTZG9FBq8YE7Vb4u",
+    user: "gauresh99999@gmail.com",
+    pass: "lyiqwhdwudaxgqku",
   },
 });
 
 (async () => {
   const info = await transporter.sendMail({
-    from: '"Gauresh Gaude" <breitenberg78@ethereal.email>',
-    to: "gauresh99999@gmail.com, baz@example.com",
+    from: '"Gauresh Gaude" <gauresh99999@gmail.com>',
+    to: "chethanbadiger245@gmail.com",
     subject: "Website Checker summary",
     text: "Hello world this is Website checker", 
     html: "<b> Bruhh  </b>", 
