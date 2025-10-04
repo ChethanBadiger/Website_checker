@@ -115,8 +115,7 @@ async function checkSite(url) {
         url: res.url,
         errors: res.errors.join(", "),
         status: res.status,
-        //final url column is not created in supabase yet
-        //finalUrl: res.finalUrl, 
+        finalUrl: res.finalUrl, 
         screenshots: res.screenshotPath,
         log: res.log    
         }]);
