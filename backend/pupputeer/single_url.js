@@ -3,6 +3,13 @@ import Database from "better-sqlite3";
 import cron from "node-cron";
 import fs from "fs";
 import path from "path";
+import { createClient } from '@supabase/supabase-js';
+
+//function for connecting supabase
+const supabase = createClient(
+    process.env.SUPABASE_PROJECT_URL,
+    process.env.SUPABASE_API_KEY    
+)
 
 const db = new Database("../data.db"); 
 
@@ -10,7 +17,7 @@ function safeFilename(url) {
   return url.replace(/[:\/\\?%*|"<>]/g, "_");
 }
 
-// only checks a single site at a time (1min) 
+// only checks a single site at a time (1min) also add data into supabase
 async function checkSite(url) {
     const res = {
         url,
@@ -62,6 +69,27 @@ async function checkSite(url) {
             await page.screenshot({ path: fullPath, fullPage: true });
             res.screenshotPath = fullPath;
 
+        //this function is to store screenshots in supabase storage and
+        //then to retrieve them as url from which that url willl be
+        //stored in table(website_checker)
+
+        const columnName = "screenshots";
+        const fileName = `${Date.now()}_${safeFilename(url)}.png`;
+        const fileBuffer = fs.readFileSync(res.screenshotPath);
+
+        const { error: storageError } = await supabase.storage
+            .from(columnName) 
+            .upload(fileName, fileBuffer, { upsert: true });
+
+        if (storageError) {
+            console.log("Cant upload screenshot", storageError.message);
+        }else{
+            const {data: publicUrlData } = supabase.storage
+            .from(columnName)
+            .getPublicUrl(fileName);
+        res.screenshotPath = publicUrlData.publicUrl;
+        }
+
     } catch (error) {
         const msg = error.message || "";
         if (/SSL|CERT|certificate/i.test(msg)) {
@@ -82,8 +110,25 @@ async function checkSite(url) {
         res.log = `Check finished at: ${date} ${time}`;
     }
 
+    //Insertion into supabase
+    const { error: dbError } = await supabase.from('website_checker').insert([{
+        url: res.url,
+        errors: res.errors.join(", "),
+        status: res.status,
+        //final url column is not created in supabase yet
+        //finalUrl: res.finalUrl, 
+        screenshots: res.screenshotPath,
+        log: res.log    
+        }]);
+
+    if (dbError) {
+        console.log("Error occuring while inserting into supabase:", dbError.message);
+    }
+
     return res;
+
 }
+
 
 // Main function: fetch all URLs from DB and check them
 async function checkAllSites() {
@@ -120,3 +165,5 @@ cron.schedule("0 2 * * *", async () => {
         console.error("Error during scheduled check:", err);
     }
 });
+
+

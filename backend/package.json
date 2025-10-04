@@ -24,6 +24,6 @@
     "nodemailer": "^7.0.6",
     "nodemon": "^3.1.10",
     "p-limit": "^7.1.1",
-    "puppeteer": "^24.22.3"
+    "puppeteer": "^24.23.0"
   }
 }
